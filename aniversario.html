@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feliz Aniversário Jessica!</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #ffebee;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #ff4081;
+            border-radius: 10px;
+            background-color: white;
+        }
+        
+        #message {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 64, 129, 0.5);
+            z-index: 100;
+        }
+        
+        .heart {
+            color: #ff4081;
+            font-size: 48px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        h1 {
+            color: #ff4081;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            color: #333;
+            font-size: 18px;
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: #ff4081;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Pontos: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div id="message">
+        <div class="heart">❤️</div>
+        <h1>Eu te amo Jessica!</h1>
+        <p>Feliz Aniversário!</p>
+        <button onclick="resetGame()">Jogar Novamente</button>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const messageElement = document.getElementById('message');
+        
+        // Configurações do jogo
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 30,
+            speed: 5,
+            color: '#ff4081'
+        };
+        
+        let hearts = [];
+        let score = 0;
+        let gameOver = false;
+        let gameTime = 30000; // 30 segundos de jogo
+        let startTime;
+        
+        // Controles
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+        
+        // Event listeners para controles
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+        
+        // Iniciar o jogo
+        function startGame() {
+            score = 0;
+            gameOver = false;
+            hearts = [];
+            startTime = Date.now();
+            scoreElement.textContent = `Pontos: ${score}`;
+            messageElement.style.display = 'none';
+            
+            // Criar corações iniciais
+            for (let i = 0; i < 5; i++) {
+                createHeart();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Loop principal do jogo
+        function gameLoop() {
+            if (gameOver) return;
+            
+            // Limpar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Mover jogador
+            if (keys.ArrowUp && player.y > player.size / 2) player.y -= player.speed;
+            if (keys.ArrowDown && player.y < canvas.height - player.size / 2) player.y += player.speed;
+            if (keys.ArrowLeft && player.x > player.size / 2) player.x -= player.speed;
+            if (keys.ArrowRight && player.x < canvas.width - player.size / 2) player.x += player.speed;
+            
+            // Atualizar e desenhar corações
+            for (let i = hearts.length - 1; i >= 0; i--) {
+                const heart = hearts[i];
+                
+                // Verificar colisão com jogador
+                const dx = player.x - heart.x;
+                const dy = player.y - heart.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.size / 2 + heart.size / 2) {
+                    // Coletou o coração
+                    hearts.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = `Pontos: ${score}`;
+                    createHeart();
+                } else {
+                    // Desenhar coração
+                    drawHeart(heart.x, heart.y, heart.size, heart.color);
+                }
+            }
+            
+            // Desenhar jogador
+            drawHeart(player.x, player.y, player.size, player.color);
+            
+            // Verificar tempo do jogo
+            const elapsedTime = Date.now() - startTime;
+            if (elapsedTime >= gameTime) {
+                endGame();
+                return;
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Criar um novo coração
+        function createHeart() {
+            const size = Math.random() * 20 + 10;
+            const x = Math.random() * (canvas.width - size * 2) + size;
+            const y = Math.random() * (canvas.height - size * 2) + size;
+            const colors = ['#ff4081', '#e91e63', '#c2185b', '#ff80ab'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            hearts.push({ x, y, size, color });
+        }
+        
+        // Desenhar um coração
+        function drawHeart(x, y, size, color) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, y + size / 4);
+            
+            // Curvas para formar um coração
+            ctx.bezierCurveTo(
+                x, y - size / 2,
+                x + size, y - size / 2,
+                x + size, y + size / 4
+            );
+            
+            ctx.bezierCurveTo(
+                x + size, y + size / 2,
+                x, y + size,
+                x, y + size / 1.5
+            );
+            
+            ctx.bezierCurveTo(
+                x, y + size,
+                x - size, y + size / 2,
+                x - size, y + size / 4
+            );
+            
+            ctx.bezierCurveTo(
+                x - size, y - size / 2,
+                x, y - size / 2,
+                x, y + size / 4
+            );
+            
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        // Finalizar o jogo
+        function endGame() {
+            gameOver = true;
+            messageElement.style.display = 'block';
+        }
+        
+        // Reiniciar o jogo
+        function resetGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            startGame();
+        }
+        
+        // Iniciar o jogo quando a página carregar
+        window.onload = startGame;
+    </script>
+</body>
+</html>
